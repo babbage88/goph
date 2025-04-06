@@ -1,4 +1,4 @@
-module github.com/melbahja/goph
+module github.com/babbage88/goph
 
 go 1.13
 
