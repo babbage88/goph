@@ -1,9 +1,11 @@
 <div align="center">
-	<h1>Golang SSH Client.</h1>
-	<a href="https://github.com/melbahja/goph">
-		<img src="https://github.com/melbahja/goph/raw/master/.github/goph.png" width="200">
+	<h1>** THIS IS a FORK OF github.com/melbahja/goph ** Golang SSH Client.</h1>
+	<a href="https://github.com/babbage88/goph">
+		<img src="https://github.com/babbage88/goph/raw/master/.github/goph.png" width="200">
 	</a>
 	<h4 align="center">
+		Forked from github.com/melbahja/goph
+
 		Fast and easy golang ssh client module.
 	</h4>
 	<p>Goph is a lightweight Go SSH client focusing on simplicity!</p>
@@ -21,10 +23,10 @@
 ## 🚀&nbsp; Installation and Documentation
 
 ```bash
-go get github.com/melbahja/goph
+go get github.com/babbage88/goph
 ```
 
-You can find the docs at [go docs](https://pkg.go.dev/github.com/melbahja/goph).
+You can find the docs at [go docs](https://pkg.go.dev/github.com/babbage88/goph).
 
 ## 🤘&nbsp; Features
 
@@ -49,7 +51,7 @@ package main
 import (
 	"log"
 	"fmt"
-	"github.com/melbahja/goph"
+	"github.com/babbage88/goph"
 )
 
 func main() {
@@ -179,7 +181,7 @@ file.Close()
 
 ## 🥙&nbsp; Examples
 
-See [Examples](https://github.com/melbahja/ssh/blob/master/examples).
+See [Examples](https://github.com/babbage88/ssh/blob/master/examples).
 
 ## 🤝&nbsp; Missing a Feature?
 
@@ -187,4 +189,4 @@ Feel free to open a new issue, or contact me.
 
 ## 📘&nbsp; License
 
-Goph is provided under the [MIT License](https://github.com/melbahja/goph/blob/master/LICENSE).
+Goph is provided under the [MIT License](https://github.com/babbage88/goph/blob/master/LICENSE).
