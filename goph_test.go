@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/melbahja/goph"
+	"github.com/babbage88/goph"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -66,7 +66,7 @@ func gophAuthTest(t *testing.T) {
 	_, err := goph.NewConn(&goph.Config{
 		Addr:     "127.0.10.10",
 		Port:     2020,
-		User:     "melbahja",
+		User:     "babbage88",
 		Auth:     goph.Password("123456"),
 		Callback: ssh.InsecureIgnoreHostKey(),
 	})
@@ -83,7 +83,7 @@ func gophRunTest(t *testing.T) {
 	client, err := goph.NewConn(&goph.Config{
 		Addr:     "127.0.10.10",
 		Port:     2021,
-		User:     "melbahja",
+		User:     "babbage88",
 		Auth:     goph.Password("123456"),
 		Callback: ssh.InsecureIgnoreHostKey(),
 	})
@@ -106,7 +106,7 @@ func gophWrongPassTest(t *testing.T) {
 	_, err := goph.NewConn(&goph.Config{
 		Addr:     "127.0.10.10",
 		Port:     2022,
-		User:     "melbahja",
+		User:     "babbage88",
 		Auth:     goph.Password("12345"),
 		Callback: ssh.InsecureIgnoreHostKey(),
 	})
@@ -122,7 +122,7 @@ func newServer(port string) {
 		// Remove to disable password auth.
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			// a production setting.
-			if c.User() == "melbahja" && string(pass) == "123456" {
+			if c.User() == "babbage88" && string(pass) == "123456" {
 				return nil, nil
 			}
 			return nil, fmt.Errorf("password rejected for %q", c.User())
