@@ -243,8 +243,33 @@ func (c *Client) uploadDirectory(srcDir, dstDir string) error {
 	})
 }
 
-// Download file from remote server!
-func (c Client) Download(remotePath string, localPath string) (err error) {
+// The original Upload method on the goph package that doesn't handle directories.
+func (c Client) UploadV1(localPath string, remotePath string) (err error) {
+
+	local, err := os.Open(localPath)
+	if err != nil {
+		return
+	}
+	defer local.Close()
+
+	ftp, err := c.NewSftp()
+	if err != nil {
+		return
+	}
+	defer ftp.Close()
+
+	remote, err := ftp.Create(remotePath)
+	if err != nil {
+		return
+	}
+	defer remote.Close()
+
+	_, err = io.Copy(remote, local)
+	return
+}
+
+// The original goph Download method
+func (c Client) DownloadV1(remotePath string, localPath string) (err error) {
 
 	local, err := os.Create(localPath)
 	if err != nil {
@@ -269,4 +294,77 @@ func (c Client) Download(remotePath string, localPath string) (err error) {
 	}
 
 	return local.Sync()
+}
+
+// Download downloads a file or directory from the remote server to the local filesystem.
+func (c Client) Download(remotePath string, localPath string) (err error) {
+	sftpClient, err := c.NewSftp()
+	if err != nil {
+		return err
+	}
+	defer sftpClient.Close()
+
+	info, err := sftpClient.Stat(remotePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat remote path: %w", err)
+	}
+
+	if info.IsDir() {
+		return downloadDirectory(sftpClient, remotePath, localPath)
+	}
+	return downloadFile(sftpClient, remotePath, localPath)
+}
+
+// downloadFile downloads a single file from the remote server.
+func downloadFile(sftpClient *sftp.Client, remotePath, localPath string) error {
+	srcFile, err := sftpClient.Open(remotePath)
+	if err != nil {
+		return fmt.Errorf("failed to open remote file: %w", err)
+	}
+	defer srcFile.Close()
+
+	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+		return fmt.Errorf("failed to create local directories: %w", err)
+	}
+
+	dstFile, err := os.Create(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %w", err)
+	}
+	defer dstFile.Close()
+
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return fmt.Errorf("failed to copy data: %w", err)
+	}
+
+	return dstFile.Sync()
+}
+
+// downloadDirectory recursively downloads a directory from the remote server.
+func downloadDirectory(sftpClient *sftp.Client, remoteDir, localDir string) error {
+	walker := sftpClient.Walk(remoteDir)
+	for walker.Step() {
+		if err := walker.Err(); err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(remoteDir, walker.Path())
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
+		}
+
+		localPath := filepath.Join(localDir, relPath)
+
+		if walker.Stat().IsDir() {
+			if err := os.MkdirAll(localPath, 0755); err != nil {
+				return fmt.Errorf("failed to create local directory: %w", err)
+			}
+			continue
+		}
+
+		if err := downloadFile(sftpClient, walker.Path(), localPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
