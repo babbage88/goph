@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -39,19 +38,23 @@ import (
 //
 
 var (
-	err        error
-	auth       goph.Auth
-	client     *goph.Client
-	addr       string
-	user       string
-	port       uint
-	key        string
-	cmd        string
-	pass       bool
-	passphrase bool
-	timeout    time.Duration
-	agent      bool
-	sftpc      *sftp.Client
+	err           error
+	auth          goph.Auth
+	client        *goph.Client
+	host          string
+	user          string
+	port          uint
+	key           string
+	cmd           string
+	pass          bool
+	passphrase    bool
+	timeout       time.Duration
+	upload        bool
+	uploadDirTest bool
+	uploadSrc     string
+	uploadDst     string
+	agent         bool
+	sftpc         *sftp.Client
 )
 
 func init() {
@@ -61,14 +64,20 @@ func init() {
 		usr.Username = "root"
 	}
 
-	flag.StringVar(&addr, "ip", "127.0.0.1", "machine ip address.")
-	flag.StringVar(&user, "user", usr.Username, "ssh user.")
+	flag.StringVar(&host, "host", "127.0.0.1", "machine ip address.")
+	flag.StringVar(&user, "user", "jtrahan", "ssh user.")
 	flag.UintVar(&port, "port", 22, "ssh port number.")
-	flag.StringVar(&key, "key", filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa"), "private key path.")
+	flag.StringVar(&key, "key", filepath.Join(os.Getenv("HOME"), ".ssh", "id_ed25519"), "private key path.")
 	flag.StringVar(&cmd, "cmd", "", "command to run.")
 	flag.BoolVar(&pass, "pass", false, "ask for ssh password instead of private key.")
 	flag.BoolVar(&agent, "agent", false, "use ssh agent for authentication (unix systems only).")
-	flag.BoolVar(&passphrase, "passphrase", false, "ask for private key passphrase.")
+	flag.BoolVar(&passphrase, "passphrase", true, "ask for private key passphrase.")
+	flag.BoolVar(&upload, "upload", true, "run the Client Upload method")
+	flag.BoolVar(&uploadDirTest, "test-upload-dir", true, "test the Upload the targeting a directory")
+	flag.StringVar(&uploadSrc, "src-up", "/tmp/testfile.txt", "Source file or directory to upload")
+
+	flag.StringVar(&uploadDst, "dst-up", "/tmp/testfile.txt", "Destination file or directory to upload")
+
 	flag.DurationVar(&timeout, "timeout", 0, "interrupt a command with SIGINT after a given timeout (0 means no timeout)")
 }
 
@@ -101,7 +110,7 @@ func VerifyHost(host string, remote net.Addr, key ssh.PublicKey) error {
 	if askIsHostTrusted(host, key) == false {
 
 		// Make sure to return error on non trusted keys.
-		return errors.New("you typed no, aborted!")
+		return fmt.Errorf("you typed no, aborted!")
 	}
 
 	// Add the new host to known hosts file.
@@ -133,7 +142,7 @@ func main() {
 
 	client, err = goph.NewConn(&goph.Config{
 		User:     user,
-		Addr:     addr,
+		Addr:     host,
 		Port:     port,
 		Auth:     auth,
 		Callback: VerifyHost,
@@ -160,6 +169,30 @@ func main() {
 
 		fmt.Println(string(out), err)
 		return
+	}
+
+	if uploadDirTest {
+		fmt.Println("Testing dir Upload")
+		err := client.Upload("/tmp/test_dir", "/tmp/test_dir")
+		if err != nil {
+			fmt.Printf("Error uploading directory %s\n", err.Error())
+			os.Exit(1)
+		}
+		if !upload {
+			os.Exit(0)
+		}
+
+	}
+
+	if upload {
+		fmt.Printf("Uploading from src: %s to dst: %s host: %s\n", uploadSrc, uploadDst, host)
+		err := client.Upload(uploadSrc, uploadDst)
+		if err != nil {
+			fmt.Printf("Error uploading file %s\n", err.Error())
+			os.Exit(1)
+		}
+		os.Exit(0)
+
 	}
 
 	// else open interactive mode.
