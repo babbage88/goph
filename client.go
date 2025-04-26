@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -161,29 +162,85 @@ func (c Client) Close() error {
 	return c.Client.Close()
 }
 
-// Upload a local file to remote server!
-func (c Client) Upload(localPath string, remotePath string) (err error) {
-
-	local, err := os.Open(localPath)
+func (c *Client) Upload(srcPath, dstPath string) error {
+	stat, err := os.Stat(srcPath)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to stat source path: %w", err)
 	}
-	defer local.Close()
 
-	ftp, err := c.NewSftp()
+	if stat.IsDir() {
+		// Directory upload
+		return c.uploadDirectory(srcPath, dstPath)
+	}
+
+	// File upload
+	return c.uploadFile(srcPath, dstPath)
+}
+
+func (c *Client) uploadFile(srcPath, dstPath string) error {
+	sftpClient, err := sftp.NewClient(c.Client)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to create sftp client: %w", err)
 	}
-	defer ftp.Close()
+	defer sftpClient.Close()
 
-	remote, err := ftp.Create(remotePath)
+	srcFile, err := os.Open(srcPath)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer remote.Close()
+	defer srcFile.Close()
 
-	_, err = io.Copy(remote, local)
-	return
+	dstFile, err := sftpClient.Create(dstPath)
+	if err != nil {
+		return fmt.Errorf("failed to create remote file: %w", err)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
+}
+
+func (c *Client) uploadDirectory(srcDir, dstDir string) error {
+	sftpClient, err := sftp.NewClient(c.Client)
+	if err != nil {
+		return fmt.Errorf("failed to create sftp client: %w", err)
+	}
+	defer sftpClient.Close()
+
+	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(dstDir, relPath)
+
+		if info.IsDir() {
+			sftpClient.MkdirAll(targetPath)
+		} else {
+			srcFile, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer srcFile.Close()
+
+			dstFile, err := sftpClient.Create(targetPath)
+			if err != nil {
+				return err
+			}
+			defer dstFile.Close()
+
+			_, err = io.Copy(dstFile, srcFile)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // Download file from remote server!
