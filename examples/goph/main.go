@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/babbage88/goph"
+	"github.com/babbage88/goph/v2"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
