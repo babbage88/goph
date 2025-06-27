@@ -23,7 +23,7 @@
 ## 🚀&nbsp; Installation and Documentation
 
 ```bash
-go get github.com/babbage88/goph
+go get github.com/babbage88/goph/v2
 ```
 
 You can find the docs at [go docs](https://pkg.go.dev/github.com/babbage88/goph).
